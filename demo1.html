@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WhatsApp Style Video Call</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: sans-serif;
+      background-color: #000;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .main-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .videos {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background-color: #333;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .remote-video-container {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30%;
+      height: 25%;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
+      z-index: 10;
+    }
+
+    label {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .call-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 15;
+    }
+
+    .control-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: none;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    #endCallButton {
+      background-color: red;
+    }
+
+    .chat-section {
+      position: absolute;
+      bottom: 80px;
+      width: 100%;
+      max-height: 35%;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chat-input-container {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      padding: 10px;
+    }
+
+    .input-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      margin: 0 8px;
+      cursor: pointer;
+    }
+
+    .chat-input-wrapper {
+      flex-grow: 1;
+    }
+
+    #chatInput {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 20px;
+      border: none;
+      outline: none;
+      background: #fff;
+      color: #000;
+    }
+
+    .start-call-section {
+      display: none; /* Hidden in WhatsApp-style call */
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <div class="videos" id="videosContainer">
+      <div class="video-container">
+        <video id="remoteVideo" autoplay></video>
+        <label for="remoteVideo">Contact</label>
+        <div class="call-controls">
+          <button class="control-btn" id="toggleAudioButton">
+            <i class="fas fa-microphone"></i>
+          </button>
+          <button class="control-btn" id="toggleVideoButton">
+            <i class="fas fa-video"></i>
+          </button>
+          <button class="control-btn" id="endCallButton">
+            <i class="fas fa-phone-slash"></i>
+          </button>
+        </div>
+        <div class="video-container remote-video-container" id="remoteVideoContainer">
+          <video id="localVideo" autoplay muted></video>
+          <label for="localVideo">You</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-section">
+      <div class="chat-container" id="chatContainer">
+        <div class="chat-messages" id="chatMessages">
+          <!-- Chat messages will go here -->
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-container">
+      <button class="input-btn">
+        <i class="far fa-smile"></i>
+      </button>
+      <button class="input-btn">
+        <i class="fas fa-paperclip"></i>
+      </button>
+      <div class="chat-input-wrapper">
+        <input id="chatInput" type="text" placeholder="Type a message" />
+      </div>
+      <button class="input-btn" id="sendChatButton">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+</body>
+</html>
