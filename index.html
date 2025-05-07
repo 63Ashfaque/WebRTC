@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+   
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>WebRTC Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+   
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div class="header-title">
+            
+                <div class="profile-img">
+                    <img src="https://picsum.photos/200" alt="Profile Image" />
+                </div>
+            
+                <!-- <h1>WebRTC Chat Your ID:</h1> -->
+                  <div class="info-bar1">
+                <div class="peer-id-section">
+                    <h3>Chat ID :
+                        <button id="newPeerId"><i class="fas fa-arrows-rotate"></i></button>
+                        <span id="myPeerId" class="peer-id">...</span>
+                        <button id="copyPeerId"><i class="fas fa-copy"></i></button>
+                    </h3>
+                    <!-- <span>Your ID:</span>
+                    <span id="myPeerId" class="peer-id">...</span>
+                    <button id="copyPeerId"><i class="fas fa-copy"></i></button> -->
+                </div>
+                <div id="connectedPeers">Not connected</div>
+            </div>
+            </div>
+            <div class="header-actions">
+                <!-- <button class="header-btn" id="videoCallBtn">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button class="header-btn" id="audioCallBtn">
+                    <i class="fas fa-phone"></i> -->
+                </button>
+                <!-- <button class="header-btn">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button> -->
+                <button class="header-btn" id="disconnectBtn" title="Disconnect">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="main-container">
+            <!-- <div class="info-bar">
+                <div class="peer-id-section">
+                    <span>Your ID:</span>
+                    <span id="myPeerId" class="peer-id">...</span>
+                    <button id="copyPeerId"><i class="fas fa-copy"></i></button>
+                </div>
+                <div id="connectedPeers">Not connected</div>
+            </div> -->
+
+            <div class="videos" id="videosContainer">
+                <div class="video-container">
+                    <video id="localVideo" autoplay muted></video>
+                    <label for="localVideo">You</label>
+                    <div class="call-controls">
+                        <button class="control-btn" id="toggleAudioButton">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="control-btn" id="toggleVideoButton">
+                            <i class="fas fa-video"></i>
+                        </button>
+                        <button class="control-btn" id="endCallButton">
+                            <i class="fas fa-phone-slash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="video-container remote-video-container" id="remoteVideoContainer">
+                    <video id="remoteVideo" autoplay></video>
+                    <label for="remoteVideo">Contact</label>
+                </div>
+            </div>
+
+            <div class="chat-section">
+                <div class="chat-container" id="chatContainer">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Messages will be dynamically added here -->
+                    </div>
+                </div>
+                
+                <div class="chat-input-container">
+                    <button class="input-btn">
+                        <i class="far fa-smile"></i>
+                    </button>
+                    <button class="input-btn">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <div class="chat-input-wrapper">
+                        <input id="chatInput" type="text" placeholder="Type a message" />
+                    </div>
+                    <button class="input-btn" id="sendChatButton">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="start-call-section">
+                <div class="call-init" id="callInit">
+                    <input id="peerIdInput" type="text" placeholder="Enter peer ID to connect" />
+                    <button class="call-btn" id="startCallButton">
+                        <i class="fas fa-plug"></i> Connect
+                    </button>
+                </div>
+                <div class="media-toggles" id="mediaToggles">
+                    <button class="media-toggle-btn" id="toggleAudioModeButton">
+                        <i class="fas fa-microphone"></i> Audio
+                    </button>
+                    <button class="media-toggle-btn" id="toggleVideoModeButton">
+                        <i class="fas fa-video"></i> Video
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for call options -->
+    <div class="modal-overlay" id="callOptionsModal">
+        <div class="modal">
+            <h2>Select Call Type</h2>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="optionChat">
+                    <i class="fas fa-comment"></i> Text Chat
+                </button>
+                <button class="modal-btn secondary" id="optionAudio">
+                    <i class="fas fa-phone"></i> Audio Call
+                </button>
+                <button class="modal-btn primary" id="optionVideo">
+                    <i class="fas fa-video"></i> Video Call
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incoming call dialog -->
+    <div class="incoming-call-modal" id="incomingCallModal">
+        <div class="incoming-call-box">
+            <div class="caller">
+                <i class="fas fa-user"></i>
+            </div>
+            <h2>Incoming Call</h2>
+            <div id="incomingCallType">Audio/Video Call</div>
+            <div class="call-actions">
+                <button class="call-action-btn reject" id="rejectCallBtn">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+                <button class="call-action-btn accept" id="acceptCallBtn">
+                    <i class="fas fa-phone"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" style="position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 24px; border-radius: 24px; font-size: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000;">Connected!</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script>
+        console.log('PeerJS:', typeof Peer); // Should log 'function'
+      </script>
+      <script src="myscripts.js"></script>
+
+</body>
+</html>
