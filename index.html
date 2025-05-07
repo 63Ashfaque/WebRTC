@@ -19,46 +19,33 @@
                     <img src="https://picsum.photos/200" alt="Profile Image" />
                 </div>
             
-                <!-- <h1>WebRTC Chat Your ID:</h1> -->
                   <div class="info-bar1">
                 <div class="peer-id-section">
                     <h3>Chat ID :
-                        <button id="newPeerId"><i class="fas fa-arrows-rotate"></i></button>
                         <span id="myPeerId" class="peer-id">...</span>
                         <button id="copyPeerId"><i class="fas fa-copy"></i></button>
+                        <button id="newPeerId"><i class="fas fa-arrows-rotate"></i></button>
+
                     </h3>
-                    <!-- <span>Your ID:</span>
-                    <span id="myPeerId" class="peer-id">...</span>
-                    <button id="copyPeerId"><i class="fas fa-copy"></i></button> -->
+                   
                 </div>
                 <div id="connectedPeers">Not connected</div>
             </div>
             </div>
             <div class="header-actions">
-                <!-- <button class="header-btn" id="videoCallBtn">
-                    <i class="fas fa-video"></i>
-                </button>
-                <button class="header-btn" id="audioCallBtn">
-                    <i class="fas fa-phone"></i> -->
-                </button>
-                <!-- <button class="header-btn">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button> -->
-                <button class="header-btn" id="disconnectBtn" title="Disconnect">
+               
+            
+                <button class="header-btn-reject" id="disconnectBtn" title="Disconnect">
                     <i class="fas fa-phone-slash"></i>
                 </button>
+              
             </div>
         </div>
 
         <div class="main-container">
-            <!-- <div class="info-bar">
-                <div class="peer-id-section">
-                    <span>Your ID:</span>
-                    <span id="myPeerId" class="peer-id">...</span>
-                    <button id="copyPeerId"><i class="fas fa-copy"></i></button>
-                </div>
-                <div id="connectedPeers">Not connected</div>
-            </div> -->
+            
+
+            
 
             <div class="videos" id="videosContainer">
                 <div class="video-container">
@@ -67,6 +54,7 @@
                     <div class="call-controls">
                         <button class="control-btn" id="toggleAudioButton">
                             <i class="fas fa-microphone"></i>
+                        
                         </button>
                         <button class="control-btn" id="toggleVideoButton">
                             <i class="fas fa-video"></i>
@@ -89,6 +77,17 @@
                     </div>
                 </div>
                 
+                
+            </div>
+
+            <div class="start-call-section">
+                <div class="call-init" id="callInit">
+                    <input id="peerIdInput" type="text" placeholder="Enter peer ID to connect" />
+                    <button class="call-btn" id="startCallButton">
+                        <i class="fas fa-plug"></i> Connect
+                    </button>
+                </div>
+
                 <div class="chat-input-container">
                     <button class="input-btn">
                         <i class="far fa-smile"></i>
@@ -103,23 +102,7 @@
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
-            </div>
-
-            <div class="start-call-section">
-                <div class="call-init" id="callInit">
-                    <input id="peerIdInput" type="text" placeholder="Enter peer ID to connect" />
-                    <button class="call-btn" id="startCallButton">
-                        <i class="fas fa-plug"></i> Connect
-                    </button>
-                </div>
-                <div class="media-toggles" id="mediaToggles">
-                    <button class="media-toggle-btn" id="toggleAudioModeButton">
-                        <i class="fas fa-microphone"></i> Audio
-                    </button>
-                    <button class="media-toggle-btn" id="toggleVideoModeButton">
-                        <i class="fas fa-video"></i> Video
-                    </button>
-                </div>
+               
             </div>
         </div>
     </div>

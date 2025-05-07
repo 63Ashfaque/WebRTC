@@ -1,570 +1,520 @@
-        function generateRandomPeerId() {
-            return Math.floor(1000 + Math.random() * 9000).toString();
-        }
-        const startCallButton = document.getElementById('startCallButton');
-        const endCallButton = document.getElementById('endCallButton');
-        const localVideo = document.getElementById('localVideo');
-        const remoteVideo = document.getElementById('remoteVideo');
-        const remoteVideoContainer = document.getElementById('remoteVideoContainer');
-        const videosContainer = document.getElementById('videosContainer');
-        const myPeerIdSpan = document.getElementById('myPeerId');
-        const copyPeerIdBtn = document.getElementById('copyPeerId');
-        const peerIdInput = document.getElementById('peerIdInput');
-        const toggleAudioButton = document.getElementById('toggleAudioButton');
-        const toggleVideoButton = document.getElementById('toggleVideoButton');
-        const mediaToggles = document.getElementById('mediaToggles');
-        const callInit = document.getElementById('callInit');
-        // Modal and chat
-        const callOptionsModal = document.getElementById('callOptionsModal');
-        const optionChat = document.getElementById('optionChat');
-        const optionAudio = document.getElementById('optionAudio');
-        const optionVideo = document.getElementById('optionVideo');
-        const chatContainer = document.getElementById('chatContainer');
-        const chatMessages = document.getElementById('chatMessages');
-        const chatInput = document.getElementById('chatInput');
-        const sendChatButton = document.getElementById('sendChatButton');
-        // Incoming call dialog
-        const incomingCallModal = document.getElementById('incomingCallModal');
-        const incomingCallType = document.getElementById('incomingCallType');
-        const acceptCallBtn = document.getElementById('acceptCallBtn');
-        const rejectCallBtn = document.getElementById('rejectCallBtn');
-        let pendingCall = null;
+// Utility functions
+function generateRandomPeerId() {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+}
 
-        // Generate and assign a 4-digit Peer ID
-        var myPeerId = generateRandomPeerId();
-        myPeerIdSpan.textContent = myPeerId;
-        console.log('[PeerJS] Generated Peer ID:', myPeerId);
+function showToast(message, duration = 2000) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    setTimeout(() => {
+        toast.style.opacity = '0';
+    }, duration);
+}
 
-        const peer = new Peer(myPeerId);  // Use the 4-digit Peer ID
-        console.log('[PeerJS] Peer instance created with ID:', myPeerId);
-        let localStream;
-        let peerConnection;
-        let audioEnabled = true;
-        let videoEnabled = false;
+// Main application class
+class PeerApp {
+    constructor() {
+        // DOM elements
+        this.elements = {
+            startCallButton: document.getElementById('startCallButton'),
+            endCallButton: document.getElementById('endCallButton'),
+            localVideo: document.getElementById('localVideo'),
+            remoteVideo: document.getElementById('remoteVideo'),
+            remoteVideoContainer: document.getElementById('remoteVideoContainer'),
+            videosContainer: document.getElementById('videosContainer'),
+            myPeerIdSpan: document.getElementById('myPeerId'),
+            copyPeerIdBtn: document.getElementById('copyPeerId'),
+            peerIdInput: document.getElementById('peerIdInput'),
+            toggleAudioButton: document.getElementById('toggleAudioButton'),
+            toggleVideoButton: document.getElementById('toggleVideoButton'),
+          
+            callInit: document.getElementById('callInit'),
+            callOptionsModal: document.getElementById('callOptionsModal'),
+            optionChat: document.getElementById('optionChat'),
+            optionAudio: document.getElementById('optionAudio'),
+            optionVideo: document.getElementById('optionVideo'),
+            chatContainer: document.getElementById('chatContainer'),
+            chatMessages: document.getElementById('chatMessages'),
+            chatInput: document.getElementById('chatInput'),
+            sendChatButton: document.getElementById('sendChatButton'),
+            incomingCallModal: document.getElementById('incomingCallModal'),
+            incomingCallType: document.getElementById('incomingCallType'),
+            acceptCallBtn: document.getElementById('acceptCallBtn'),
+            rejectCallBtn: document.getElementById('rejectCallBtn'),
+            connectedPeersSpan: document.getElementById('connectedPeers'),
+            disconnectBtn: document.getElementById('disconnectBtn'),
+            chatInputContainer: document.querySelector('.chat-input-container'),
+            newPeerId: document.getElementById('newPeerId')
+        };
 
-        // By default, only request audio
-        console.log('[Media] Requesting audio stream (no video)...');
-        navigator.mediaDevices.getUserMedia({ video: false, audio: true })
-            .then(stream => {
-                localStream = stream;
-                localVideo.srcObject = stream;
-                console.log('[Media] Audio stream obtained and assigned to localVideo.');
-            })
-            .catch(error => {
-                console.error('[Media] Error accessing media devices.', error);
-            });
+        // App state
+        this.state = {
+            myPeerId: generateRandomPeerId(),
+            localStream: null,
+            peerConnection: null,
+            audioEnabled: true,
+            videoEnabled: false,
+            connectedPeers: [],
+            pendingCall: null,
+            currentChatConn: null
+        };
 
-        function setCallUIActive(active) {
-            startCallButton.disabled = active;
-            peerIdInput.disabled = active;
-            if (active) {
-                startCallButton.classList.add('disabled');
-                peerIdInput.classList.add('disabled');
-                callInit.classList.add('hide');
-            } else {
-                startCallButton.classList.remove('disabled');
-                peerIdInput.classList.remove('disabled');
-                callInit.classList.remove('hide');
-            }
-            console.log('[UI] Start Call button and Peer ID input', active ? 'disabled' : 'enabled');
-        }
+        this.init();
+    }
 
-        // Track connected peer IDs
-        let connectedPeers = [];
-        const connectedPeersSpan = document.getElementById('connectedPeers');
-        function updateConnectedPeers(peerId, add) {
-            if (add) {
-                if (!connectedPeers.includes(peerId)) connectedPeers.push(peerId);
-            } else {
-                connectedPeers = connectedPeers.filter(id => id !== peerId);
-            }
-            connectedPeersSpan.textContent = connectedPeers.length
-                ? `Connected Peers: ${connectedPeers.join(', ')}`
-                : 'Connected Peers: None';
-        }
-
-        // Handle incoming calls with accept/reject dialog
-        peer.on('call', call => {
-            console.log('[PeerJS] Incoming call received. Waiting for user to accept.');
-            pendingCall = call;
-            // Try to detect call type (audio/video)
-            let type = 'Audio/Video Call';
-            if (call.metadata && call.metadata.type) {
-                type = call.metadata.type.charAt(0).toUpperCase() + call.metadata.type.slice(1) + ' Call';
-            }
-            incomingCallType.textContent = type;
-            incomingCallModal.classList.add('active');
-            call.on('close', () => { updateConnectedPeers(call.peer, false); });
-        });
-
-        acceptCallBtn.addEventListener('click', () => {
-            if (!pendingCall) return;
-            incomingCallModal.classList.remove('active');
-            setCallUIActive(true);
-            videosContainer.classList.add('active');
-            endCallButton.classList.add('active');
-            pendingCall.answer(localStream);  // Answer with the local stream
-            peerConnection = pendingCall;
-            updateConnectedPeers(pendingCall.peer, true);
-            pendingCall.on('stream', remoteStream => {
-                remoteVideo.srcObject = remoteStream;  // Display remote stream
-                remoteVideoContainer.classList.add('active');
-                mediaToggles.classList.add('active');
-                console.log('[PeerJS] Remote stream received and assigned to remoteVideo.');
-            });
-            pendingCall.on('close', () => {
-                remoteVideo.srcObject = null;
-                remoteVideoContainer.classList.remove('active');
-                mediaToggles.classList.remove('active');
-                videosContainer.classList.remove('active');
-                endCallButton.classList.remove('active');
-                setCallUIActive(false);
-                console.log('[PeerJS] Call closed. Remote video cleared.');
-                updateConnectedPeers(pendingCall.peer, false);
-            });
-            pendingCall = null;
-        });
-
-        rejectCallBtn.addEventListener('click', () => {
-            if (!pendingCall) return;
-            incomingCallModal.classList.remove('active');
-            // Close the call without answering
-            try { pendingCall.close(); } catch (e) {}
-            pendingCall = null;
-        });
-
-        // Start a call
-        startCallButton.addEventListener('click', () => {
-            const peerId = peerIdInput.value.trim();
-            console.log('[UI] Start Call button clicked. Target Peer ID:', peerId);
-            if (peerId) {
-                // Show call options modal
-                callOptionsModal.classList.add('active');
-                // Store peerId for use in option handlers
-                callOptionsModal.dataset.peerId = peerId;
-            } else {
-                peerIdInput.focus();
-                console.log('[UI] No Peer ID entered. Input focused.');
-            }
-        });
-
-        // Call Option Handlers
-        optionChat.addEventListener('click', () => {
-            callOptionsModal.classList.remove('active');
-            setCallUIActive(true);
-            chatContainer.classList.add('active');
-            endCallButton.classList.add('active');
-            videosContainer.classList.remove('active');
-            mediaToggles.classList.remove('active');
-            // Setup PeerJS data connection
-            const peerId = callOptionsModal.dataset.peerId;
-            const conn = peer.connect(peerId);
-            window.currentChatConn = conn;
-            updateConnectedPeers(peerId, true);
-            conn.on('open', () => {
-                console.log('[Chat] Data connection opened.');
-            });
-            conn.on('data', data => {
-                appendChatMessage('Peer', data);
-            });
-            conn.on('close', () => {
-                appendChatMessage('System', 'Chat ended.');
-                updateConnectedPeers(peerId, false);
-            });
-        });
-
-        optionAudio.addEventListener('click', () => {
-            callOptionsModal.classList.remove('active');
-            setCallUIActive(true);
-            videosContainer.classList.add('active');
-            endCallButton.classList.add('active');
-            mediaToggles.classList.add('active');
-            // Start audio call
-            const peerId = callOptionsModal.dataset.peerId;
-            navigator.mediaDevices.getUserMedia({ video: false, audio: true }).then(stream => {
-                localStream = stream;
-                localVideo.srcObject = stream;
-                const call = peer.call(peerId, stream);
-                peerConnection = call;
-                updateConnectedPeers(peerId, true);
-                call.on('stream', remoteStream => {
-                    remoteVideo.srcObject = remoteStream;
-                    remoteVideoContainer.classList.add('active');
-                    mediaToggles.classList.add('active');
-                });
-                call.on('close', () => {
-                    remoteVideo.srcObject = null;
-                    remoteVideoContainer.classList.remove('active');
-                    mediaToggles.classList.remove('active');
-                    videosContainer.classList.remove('active');
-                    endCallButton.classList.remove('active');
-                    setCallUIActive(false);
-                    updateConnectedPeers(peerId, false);
-                });
-            });
-        });
-
-        optionVideo.addEventListener('click', () => {
-            callOptionsModal.classList.remove('active');
-            setCallUIActive(true);
-            videosContainer.classList.add('active');
-            endCallButton.classList.add('active');
-            mediaToggles.classList.add('active');
-            // Start video call
-            const peerId = callOptionsModal.dataset.peerId;
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
-                localStream = stream;
-                localVideo.srcObject = stream;
-                const call = peer.call(peerId, stream);
-                peerConnection = call;
-                updateConnectedPeers(peerId, true);
-                call.on('stream', remoteStream => {
-                    remoteVideo.srcObject = remoteStream;
-                    remoteVideoContainer.classList.add('active');
-                    mediaToggles.classList.add('active');
-                });
-                call.on('close', () => {
-                    remoteVideo.srcObject = null;
-                    remoteVideoContainer.classList.remove('active');
-                    mediaToggles.classList.remove('active');
-                    videosContainer.classList.remove('active');
-                    endCallButton.classList.remove('active');
-                    setCallUIActive(false);
-                    updateConnectedPeers(peerId, false);
-                });
-            });
-        });
-
-        // Chat UI logic
-        function appendChatMessage(sender, message) {
-            const msgDiv = document.createElement('div');
-            msgDiv.classList.add('message');
-            if (sender === 'You') {
-                msgDiv.classList.add('outgoing');
-                msgDiv.textContent = message;
-            } else if (sender === 'Peer') {
-                msgDiv.classList.add('incoming');
-                msgDiv.textContent = message;
-            } else if (sender === 'System') {
-                msgDiv.style.textAlign = 'center';
-                msgDiv.style.color = '#888';
-                msgDiv.textContent = message;
-            } else {
-                msgDiv.textContent = `${sender}: ${message}`;
-            }
-            chatMessages.appendChild(msgDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            if (sender === 'System' && message === 'Chat ended.') {
-                chatContainer.classList.remove('active');
-                setCallUIActive(false);
-            }
-        }
-        sendChatButton.addEventListener('click', sendChatMessage);
-        chatInput.addEventListener('keydown', e => {
-            if (e.key === 'Enter') sendChatMessage();
-        });
-        function sendChatMessage() {
-            const msg = chatInput.value.trim();
-            if (!msg || !window.currentChatConn) return;
-            window.currentChatConn.send(msg);
-            appendChatMessage('You', msg);
-            chatInput.value = '';
-        }
-
-        // Handle incoming data connections
-        peer.on('connection', conn => {
-            window.currentChatConn = conn;
-            chatContainer.classList.add('active');
-            setCallUIActive(true);
-            endCallButton.classList.add('active');
-            updateConnectedPeers(conn.peer, true);
-            conn.on('data', data => {
-                appendChatMessage('Peer', data);
-            });
-            conn.on('close', () => {
-                appendChatMessage('System', 'Chat ended.');
-                updateConnectedPeers(conn.peer, false);
-            });
-        });
-
-        // End the call
-        endCallButton.addEventListener('click', () => {
-            console.log('[UI] End Call button clicked.');
-            if (peerConnection) {
-                peerConnection.close();
-                console.log('[PeerJS] Peer connection closed.');
-            }
-            if (window.currentChatConn) {
-                window.currentChatConn.close();
-                window.currentChatConn = null;
-            }
-            remoteVideo.srcObject = null;
-            remoteVideoContainer.classList.remove('active');
-            mediaToggles.classList.remove('active');
-            videosContainer.classList.remove('active');
-            endCallButton.classList.remove('active');
-            chatContainer.classList.remove('active');
-            setCallUIActive(false);
-            console.log('[UI] Remote video cleared.');
-        });
-
-        // Copy Peer ID to clipboard
-        copyPeerIdBtn.addEventListener('click', () => {
-            const id = myPeerIdSpan.textContent;
-            navigator.clipboard.writeText(id);
-            copyPeerIdBtn.textContent = '✅';
-            setTimeout(() => copyPeerIdBtn.textContent = '📋', 1000);
-            console.log('[UI] Peer ID copied to clipboard:', id);
-        });
-        newPeerId.addEventListener('click', () => {
+    init() {
+        // Initialize PeerJS
+        this.peer = new Peer(this.state.myPeerId);
+        console.log('[PeerJS] Peer instance created with ID:', this.state.myPeerId);
         
-             myPeerId = generateRandomPeerId();
-            myPeerIdSpan.textContent = myPeerId;
-            console.log('[UI] New Peer ID generated:', myPeerId);
-        });
+        // Set initial UI state
+        this.elements.myPeerIdSpan.textContent = this.state.myPeerId;
+        this.setConnectedUI(false);
+        
+        // Request initial audio stream
+        this.getUserMedia({ video: false, audio: true })
+            .then(stream => this.setLocalStream(stream))
+            .catch(error => console.error('[Media] Error accessing media devices.', error));
+        
+        // Set up event listeners
+        this.setupEventListeners();
+    }
 
-        // Toggle Audio
-        toggleAudioButton.addEventListener('click', () => {
-            if (!localStream) return;
-            audioEnabled = !audioEnabled;
-            localStream.getAudioTracks().forEach(track => {
-                track.enabled = audioEnabled;
+    // Media handling
+    async getUserMedia(constraints) {
+        try {
+            return await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (error) {
+            console.error('[Media] Error getting user media:', error);
+            throw error;
+        }
+    }
+
+    setLocalStream(stream) {
+        this.state.localStream = stream;
+        this.elements.localVideo.srcObject = stream;
+        console.log('[Media] Stream obtained and assigned to localVideo.');
+    }
+
+    // Connection management
+    updateConnectedPeers(peerId, add) {
+        if (add) {
+            if (!this.state.connectedPeers.includes(peerId)) {
+                this.state.connectedPeers.push(peerId);
+            }
+        } else {
+            this.state.connectedPeers = this.state.connectedPeers.filter(id => id !== peerId);
+        }
+        
+        this.elements.connectedPeersSpan.textContent = this.state.connectedPeers.length
+            ? `Connected Peers: ${this.state.connectedPeers.join(', ')}`
+            : 'Connected Peers: None';
+    }
+
+    // UI state management
+    setCallUIActive(active) {
+        this.elements.startCallButton.disabled = active;
+        this.elements.peerIdInput.disabled = active;
+        
+        if (active) {
+            this.elements.startCallButton.classList.add('disabled');
+            this.elements.peerIdInput.classList.add('disabled');
+            this.elements.callInit.classList.add('hide');
+        } else {
+            this.elements.startCallButton.classList.remove('disabled');
+            this.elements.peerIdInput.classList.remove('disabled');
+            this.elements.callInit.classList.remove('hide');
+        }
+    }
+
+    setConnectedUI(connected) {
+        this.elements.disconnectBtn.style.display = connected ? '' : 'none';
+        this.elements.chatInputContainer.style.display = connected ? '' : 'none';
+       
+        this.elements.endCallButton.style.display = connected ? '' : 'none';
+    }
+
+    // Call handling
+    async startCall(peerId, type) {
+        try {
+            this.setCallUIActive(true);
+            this.elements.videosContainer.classList.add('active');
+            this.elements.endCallButton.classList.add('active');
+          
+            
+            let constraints = { audio: true };
+            if (type === 'video') {
+                constraints.video = true;
+            }
+            
+            const stream = await this.getUserMedia(constraints);
+            this.setLocalStream(stream);
+            
+            const call = this.peer.call(peerId, stream);
+            this.state.peerConnection = call;
+            this.updateConnectedPeers(peerId, true);
+            
+            call.on('stream', remoteStream => {
+                this.elements.remoteVideo.srcObject = remoteStream;
+                this.elements.remoteVideoContainer.classList.add('active');
             });
-            toggleAudioButton.textContent = audioEnabled ? '🔊 Audio On' : '🔇 Audio Off';
-            console.log('[UI] Audio', audioEnabled ? 'enabled' : 'muted');
-        });
+            
+            call.on('close', () => this.endCall());
+            
+            this.setConnectedUI(true);
+            return call;
+        } catch (error) {
+            console.error('[Call] Error starting call:', error);
+            this.endCall();
+            throw error;
+        }
+    }
 
-        // Toggle Video
-        toggleVideoButton.addEventListener('click', async () => {
-            if (!localStream) return;
-            if (!videoEnabled) {
-                // Enable video: get video track and add to stream
-                try {
-                    const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    const videoTrack = videoStream.getVideoTracks()[0];
-                    localStream.addTrack(videoTrack);
-                    localVideo.srcObject = localStream;
-                    videoEnabled = true;
-                    toggleVideoButton.textContent = '🎥 Video On';
-                    console.log('[UI] Video enabled');
-                } catch (err) {
-                    console.error('[Media] Error enabling video:', err);
-                }
+    async answerCall() {
+        if (!this.state.pendingCall) return;
+        
+        try {
+            this.elements.incomingCallModal.classList.remove('active');
+            this.setCallUIActive(true);
+            this.elements.videosContainer.classList.add('active');
+            this.elements.endCallButton.classList.add('active');
+            
+            // Ensure we have the required media
+            const currentStream = this.state.localStream;
+            if (!currentStream || (this.state.pendingCall.metadata?.type === 'video' && !currentStream.getVideoTracks().length)) {
+                const constraints = { 
+                    audio: true, 
+                    video: this.state.pendingCall.metadata?.type === 'video' 
+                };
+                const stream = await this.getUserMedia(constraints);
+                this.setLocalStream(stream);
+            }
+            
+            this.state.pendingCall.answer(this.state.localStream);
+            this.state.peerConnection = this.state.pendingCall;
+            this.updateConnectedPeers(this.state.pendingCall.peer, true);
+            
+            this.state.pendingCall.on('stream', remoteStream => {
+                this.elements.remoteVideo.srcObject = remoteStream;
+                this.elements.remoteVideoContainer.classList.add('active');
+                
+            });
+            
+            this.state.pendingCall.on('close', () => this.endCall());
+            
+            this.setConnectedUI(true);
+            this.state.pendingCall = null;
+        } catch (error) {
+            console.error('[Call] Error answering call:', error);
+            this.endCall();
+        }
+    }
+
+    endCall() {
+        if (this.state.peerConnection) {
+            this.state.peerConnection.close();
+            this.state.peerConnection = null;
+        }
+        
+        if (this.state.currentChatConn) {
+            this.state.currentChatConn.close();
+            this.state.currentChatConn = null;
+        }
+        
+        this.elements.remoteVideo.srcObject = null;
+        this.elements.remoteVideoContainer.classList.remove('active');
+    
+        this.elements.videosContainer.classList.remove('active');
+        this.elements.endCallButton.classList.remove('active');
+        this.elements.chatContainer.classList.remove('active');
+        this.setCallUIActive(false);
+        this.setConnectedUI(false);
+        
+        // Reset peer list but keep UI responsive
+        this.state.connectedPeers = [];
+        this.elements.connectedPeersSpan.textContent = 'Connected Peers: None';
+    }
+
+    // Chat handling
+    setupChatConnection(peerId) {
+        const conn = this.peer.connect(peerId);
+        this.state.currentChatConn = conn;
+        this.updateConnectedPeers(peerId, true);
+        
+        conn.on('open', () => {
+            console.log('[Chat] Data connection opened.');
+            this.setConnectedUI(true);
+        });
+        
+        conn.on('data', data => this.appendChatMessage('Peer', data));
+        conn.on('close', () => {
+            this.appendChatMessage('System', 'Chat ended.');
+            this.updateConnectedPeers(peerId, false);
+            this.setConnectedUI(false);
+        });
+    }
+    appendChatMessage(sender, message) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message');
+    
+        if (sender === 'You') {
+            msgDiv.classList.add('outgoing');
+        } else if (sender === 'Peer') {
+            msgDiv.classList.add('incoming');
+        } else if (sender === 'System') {
+            msgDiv.style.textAlign = 'center';
+            msgDiv.style.color = '#888';
+        }
+    
+        // Create message content with optional ticks and time
+        const messageContent = document.createElement('div');
+        messageContent.textContent = message;
+    
+        // Create metadata (time and ticks)
+        const metadata = document.createElement('span');
+        metadata.classList.add('metadata');
+    
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
+        if (sender === 'You') {
+          
+            metadata.innerHTML = `${timeString} <span class="ticks">✔✔</span>`; // double tick
+        }
+        if (sender === 'Peer') 
+        {
+            metadata.innerHTML = `${timeString}`; // double tick
+
+        }
+    
+        msgDiv.appendChild(messageContent);
+        if (sender === 'You' || sender === 'Peer') {
+            msgDiv.appendChild(metadata);
+        }
+    
+        this.elements.chatMessages.appendChild(msgDiv);
+        this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
+    
+        if (sender === 'System' && message === 'Chat ended.') {
+            this.elements.chatContainer.classList.remove('active');
+            this.setCallUIActive(false);
+        }
+    }
+    
+
+    appendChatMessage1(sender, message) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message');
+        
+        if (sender === 'You') {
+            msgDiv.classList.add('outgoing');
+        } else if (sender === 'Peer') {
+            msgDiv.classList.add('incoming');
+        } else if (sender === 'System') {
+            msgDiv.style.textAlign = 'center';
+            msgDiv.style.color = '#888';
+        }
+        
+        msgDiv.textContent = message;
+        this.elements.chatMessages.appendChild(msgDiv);
+        this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
+        
+        if (sender === 'System' && message === 'Chat ended.') {
+            this.elements.chatContainer.classList.remove('active');
+            this.setCallUIActive(false);
+        }
+    }
+
+    sendChatMessage() {
+        const msg = this.elements.chatInput.value.trim();
+        if (!msg || !this.state.currentChatConn) return;
+        
+        try {
+            this.state.currentChatConn.send(msg);
+            this.appendChatMessage('You', msg);
+            this.elements.chatInput.value = '';
+        } catch (error) {
+            console.error('[Chat] Error sending message:', error);
+        }
+    }
+
+    // Media controls
+    toggleAudio() {
+        if (!this.state.localStream) return;
+        
+        this.state.audioEnabled = !this.state.audioEnabled;
+        this.state.localStream.getAudioTracks().forEach(track => {
+            track.enabled = this.state.audioEnabled;
+        });
+         // Toggle icon in the button
+    const icon = this.elements.toggleAudioButton.querySelector("i");
+    if (this.state.audioEnabled) {
+        icon.classList.remove("fa-microphone-slash");
+        icon.classList.add("fa-microphone");
+    } else {
+        icon.classList.remove("fa-microphone");
+        icon.classList.add("fa-microphone-slash");
+    }
+        
+       // this.elements.toggleAudioButton.textContent = this.state.audioEnabled ? '🔊 Audio On' : '🔇 Audio Off';
+        console.log('[UI] Audio', this.state.audioEnabled ? 'enabled' : 'muted');
+    }
+
+    async toggleVideo() {
+        if (!this.state.localStream) return;
+        
+        try {
+            if (!this.state.videoEnabled) {
+                const videoStream = await this.getUserMedia({ video: true });
+                const videoTrack = videoStream.getVideoTracks()[0];
+                this.state.localStream.addTrack(videoTrack);
+                this.elements.localVideo.srcObject = this.state.localStream;
+                this.state.videoEnabled = true;
+                icon.classList.remove("fa-video-slash");
+                icon.classList.add("fa-video");
+        
             } else {
-                // Disable video: remove video track from stream
-                localStream.getVideoTracks().forEach(track => {
+                this.state.localStream.getVideoTracks().forEach(track => {
                     track.stop();
-                    localStream.removeTrack(track);
+                    this.state.localStream.removeTrack(track);
                 });
-                localVideo.srcObject = localStream;
-                videoEnabled = false;
-                toggleVideoButton.textContent = '🎥 Video Off';
-                console.log('[UI] Video disabled');
+                this.elements.localVideo.srcObject = this.state.localStream;
+                this.state.videoEnabled = false;
+               
+                icon.classList.remove("fa-video");
+                icon.classList.add("fa-video-slash");
             }
-        });
-
-        // Add references for header call buttons and disconnect
-        // const videoCallBtn = document.getElementById('videoCallBtn');
-        // const audioCallBtn = document.getElementById('audioCallBtn');
-        const disconnectBtn = document.getElementById('disconnectBtn');
-        const chatInputContainer = document.querySelector('.chat-input-container');
-
-        // Show/hide all call/chat options based on connection state
-        function setConnectedUI(connected) {
-            // Header call buttons
-            // videoCallBtn.style.display = connected ? '' : 'none';
-            // audioCallBtn.style.display = connected ? '' : 'none';
-            disconnectBtn.style.display = connected ? '' : 'none';
-            // Chat input
-            chatInputContainer.style.display = connected ? '' : 'none';
-            // Media toggles
-            mediaToggles.style.display = connected ? '' : 'none';
-            // End call button
-            endCallButton.style.display = connected ? '' : 'none';
+        } catch (error) {
+            console.error('[Media] Error toggling video:', error);
         }
-        // Hide all options initially
-        setConnectedUI(false);
+    }
 
-        // Toast notification logic
-        const toast = document.getElementById('toast');
-        function showToast(message) {
-            toast.textContent = message;
-            toast.style.opacity = '1';
-            setTimeout(() => {
-                toast.style.opacity = '0';
-            }, 2000);
-        }
-
-        // When a connection is established (chat or call), show options
-        function onConnected() {
-            setConnectedUI(true);
-            showToast('Connected!');
-        }
-        // When disconnected, hide options
-        function onDisconnected() {
-            setConnectedUI(false);
-        }
-
-        // Example: After chat connection open
-        optionChat.addEventListener('click', () => {
-            callOptionsModal.classList.remove('active');
-            setCallUIActive(true);
-            chatContainer.classList.add('active');
-            endCallButton.classList.add('active');
-            videosContainer.classList.remove('active');
-            mediaToggles.classList.remove('active');
-            // Setup PeerJS data connection
-            const peerId = callOptionsModal.dataset.peerId;
-            const conn = peer.connect(peerId);
-            window.currentChatConn = conn;
-            updateConnectedPeers(peerId, true);
-            conn.on('open', () => {
-                console.log('[Chat] Data connection opened.');
-                onConnected();
-            });
-            conn.on('data', data => {
-                appendChatMessage('Peer', data);
-            });
-            conn.on('close', () => {
-                appendChatMessage('System', 'Chat ended.');
-                updateConnectedPeers(peerId, false);
-                onDisconnected();
-            });
-        });
-
-        // Example: After call connection open/close
-        optionAudio.addEventListener('click', () => {
-            callOptionsModal.classList.remove('active');
-            setCallUIActive(true);
-            videosContainer.classList.add('active');
-            endCallButton.classList.add('active');
-            mediaToggles.classList.add('active');
-            // Start audio call
-            const peerId = callOptionsModal.dataset.peerId;
-            navigator.mediaDevices.getUserMedia({ video: false, audio: true }).then(stream => {
-                localStream = stream;
-                localVideo.srcObject = stream;
-                const call = peer.call(peerId, stream);
-                peerConnection = call;
-                updateConnectedPeers(peerId, true);
-                onConnected();
-                call.on('stream', remoteStream => {
-                    remoteVideo.srcObject = remoteStream;
-                    remoteVideoContainer.classList.add('active');
-                    mediaToggles.classList.add('active');
-                });
-                call.on('close', () => {
-                    remoteVideo.srcObject = null;
-                    remoteVideoContainer.classList.remove('active');
-                    mediaToggles.classList.remove('active');
-                    videosContainer.classList.remove('active');
-                    endCallButton.classList.remove('active');
-                    setCallUIActive(false);
-                    updateConnectedPeers(peerId, false);
-                    onDisconnected();
-                });
-            });
-        });
-        optionVideo.addEventListener('click', () => {
-            callOptionsModal.classList.remove('active');
-            setCallUIActive(true);
-            videosContainer.classList.add('active');
-            endCallButton.classList.add('active');
-            mediaToggles.classList.add('active');
-            // Start video call
-            const peerId = callOptionsModal.dataset.peerId;
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
-                localStream = stream;
-                localVideo.srcObject = stream;
-                const call = peer.call(peerId, stream);
-                peerConnection = call;
-                updateConnectedPeers(peerId, true);
-                onConnected();
-                call.on('stream', remoteStream => {
-                    remoteVideo.srcObject = remoteStream;
-                    remoteVideoContainer.classList.add('active');
-                    mediaToggles.classList.add('active');
-                });
-                call.on('close', () => {
-                    remoteVideo.srcObject = null;
-                    remoteVideoContainer.classList.remove('active');
-                    mediaToggles.classList.remove('active');
-                    videosContainer.classList.remove('active');
-                    endCallButton.classList.remove('active');
-                    setCallUIActive(false);
-                    updateConnectedPeers(peerId, false);
-                    onDisconnected();
-                });
-            });
-        });
-        // For incoming data connections
-        peer.on('connection', conn => {
-            window.currentChatConn = conn;
-            chatContainer.classList.add('active');
-            setCallUIActive(true);
-            endCallButton.classList.add('active');
-            updateConnectedPeers(conn.peer, true);
-            onConnected();
-            conn.on('data', data => {
-                appendChatMessage('Peer', data);
-            });
-            conn.on('close', () => {
-                appendChatMessage('System', 'Chat ended.');
-                updateConnectedPeers(conn.peer, false);
-                onDisconnected();
-            });
-        });
-        // For incoming calls
-        peer.on('call', call => {
-            console.log('[PeerJS] Incoming call received. Waiting for user to accept.');
-            pendingCall = call;
-            // Try to detect call type (audio/video)
+    // Event listeners
+    setupEventListeners() {
+        // PeerJS events
+        this.peer.on('call', call => {
+            console.log('[PeerJS] Incoming call received.');
+            this.state.pendingCall = call;
+            
             let type = 'Audio/Video Call';
-            if (call.metadata && call.metadata.type) {
-                type = call.metadata.type.charAt(0).toUpperCase() + call.metadata.type.slice(1) + ' Call';
+            if (call.metadata?.type) {
+                type = `${call.metadata.type.charAt(0).toUpperCase()}${call.metadata.type.slice(1)} Call`;
             }
-            incomingCallType.textContent = type;
-            incomingCallModal.classList.add('active');
-            call.on('close', () => { updateConnectedPeers(call.peer, false); onDisconnected(); });
+            
+            this.elements.incomingCallType.textContent = type;
+            this.elements.incomingCallModal.classList.add('active');
+            
+            call.on('close', () => {
+                this.updateConnectedPeers(call.peer, false);
+                this.setConnectedUI(false);
+            });
         });
-        // End/disconnect buttons
-        endCallButton.addEventListener('click', () => {
-            console.log('[UI] End Call button clicked.');
-            if (peerConnection) {
-                peerConnection.close();
-                console.log('[PeerJS] Peer connection closed.');
-            }
-            if (window.currentChatConn) {
-                window.currentChatConn.close();
-                window.currentChatConn = null;
-            }
-            remoteVideo.srcObject = null;
-            remoteVideoContainer.classList.remove('active');
-            mediaToggles.classList.remove('active');
-            videosContainer.classList.remove('active');
-            endCallButton.classList.remove('active');
-            chatContainer.classList.remove('active');
-            setCallUIActive(false);
-            console.log('[UI] Remote video cleared.');
-            onDisconnected();
+        
+        this.peer.on('connection', conn => {
+            this.state.currentChatConn = conn;
+            this.elements.chatContainer.classList.add('active');
+            this.setCallUIActive(true);
+            this.elements.endCallButton.classList.add('active');
+            this.updateConnectedPeers(conn.peer, true);
+            this.setConnectedUI(true);
+            
+            conn.on('data', data => this.appendChatMessage('Peer', data));
+            conn.on('close', () => {
+                this.appendChatMessage('System', 'Chat ended.');
+                this.updateConnectedPeers(conn.peer, false);
+                this.setConnectedUI(false);
+            });
         });
-        disconnectBtn.addEventListener('click', () => {
-            console.log('[UI] Disconnect button clicked.');
-            if (peerConnection) {
-                peerConnection.close();
-                console.log('[PeerJS] Peer connection closed by disconnect.');
+        
+        // Button events
+        this.elements.startCallButton.addEventListener('click', () => {
+            const peerId = this.elements.peerIdInput.value.trim();
+            if (!peerId) {
+                this.elements.peerIdInput.focus();
+                return;
             }
-            if (window.currentChatConn) {
-                window.currentChatConn.close();
-                window.currentChatConn = null;
-            }
-            remoteVideo.srcObject = null;
-            remoteVideoContainer.classList.remove('active');
-            mediaToggles.classList.remove('active');
-            videosContainer.classList.remove('active');
-            endCallButton.classList.remove('active');
-            chatContainer.classList.remove('active');
-            setCallUIActive(false);
-            console.log('[UI] Disconnected state. UI reset.');
-            onDisconnected();
+            this.elements.callOptionsModal.dataset.peerId = peerId;
+            this.elements.callOptionsModal.classList.add('active');
         });
+        
+        this.elements.endCallButton.addEventListener('click', () => this.endCall());
+        this.elements.disconnectBtn.addEventListener('click', () => this.endCall());
+        
+        this.elements.acceptCallBtn.addEventListener('click', () => this.answerCall());
+        this.elements.rejectCallBtn.addEventListener('click', () => {
+            if (this.state.pendingCall) {
+                try { this.state.pendingCall.close(); } catch (e) {}
+                this.state.pendingCall = null;
+            }
+            this.elements.incomingCallModal.classList.remove('active');
+        });
+        
+        // Call options
+        this.elements.optionChat.addEventListener('click', () => {
+            const peerId = this.elements.callOptionsModal.dataset.peerId;
+            this.elements.callOptionsModal.classList.remove('active');
+            this.setCallUIActive(true);
+            this.elements.chatContainer.classList.add('active');
+            this.elements.endCallButton.classList.add('active');
+            this.elements.videosContainer.classList.remove('active');
+    
+            this.setupChatConnection(peerId);
+        });
+        
+        this.elements.optionAudio.addEventListener('click', () => {
+            const peerId = this.elements.callOptionsModal.dataset.peerId;
+            this.elements.callOptionsModal.classList.remove('active');
+            this.startCall(peerId, 'audio');
+        });
+        
+        this.elements.optionVideo.addEventListener('click', () => {
+            const peerId = this.elements.callOptionsModal.dataset.peerId;
+            this.elements.callOptionsModal.classList.remove('active');
+            this.startCall(peerId, 'video');
+        });
+        
+        // Chat events
+        this.elements.sendChatButton.addEventListener('click', () => this.sendChatMessage());
+        this.elements.chatInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') this.sendChatMessage();
+        });
+        
+        // Media controls
+        this.elements.toggleAudioButton.addEventListener('click', () => this.toggleAudio());
+        this.elements.toggleVideoButton.addEventListener('click', () => this.toggleVideo());
+        
+        // Peer ID management
+        this.elements.copyPeerIdBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(this.state.myPeerId)
+                .then(() => {
+                    this.elements.copyPeerIdBtn.textContent = '✅';
+                    setTimeout(() => {
+                        this.elements.copyPeerIdBtn.textContent = '📋';
+                    }, 1000);
+                })
+                .catch(err => console.error('[UI] Error copying Peer ID:', err));
+        });
+        
+        this.elements.newPeerId.addEventListener('click', () => {
+            this.state.myPeerId = generateRandomPeerId();
+            this.elements.myPeerIdSpan.textContent = this.state.myPeerId;
+            console.log('[UI] New Peer ID generated:', this.state.myPeerId);
+            
+            // Reinitialize Peer with new ID
+            this.peer.destroy();
+            this.peer = new Peer(this.state.myPeerId);
+            this.setupEventListeners();
+        });
+    }
+}
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    new PeerApp();
+});
+
+
+
+
