@@ -339,6 +339,8 @@ class PeerApp {
         if (!this.state.localStream) return;
 
         try {
+             // Toggle icon in the button
+    const icon = this.elements.toggleVideoButton.querySelector("i");
             if (!this.state.videoEnabled) {
                 const videoStream = await this.getUserMedia({ video: true });
                 const videoTrack = videoStream.getVideoTracks()[0];
@@ -500,25 +502,43 @@ function refreshPage() {
   }
 
 let value = "";
+  
   function encodeBase64(text) {
-      try {
-      value=btoa(unescape(encodeURIComponent(text)));
-     console.log(`${text} => ${value}`);
-          return value;
-      } catch (e) {
-          console.error('[Base64] Encoding error:', e);
-          return '';
-      }
-  }
+    if (typeof text !== 'string') {
+        console.error('[Base64] Input must be a string');
+        return '';
+    }
 
-function decodeBase64(text) {
     try {
-    value=decodeURIComponent(escape(atob(text)));
-           console.log(`${text} => ${value}`);
-              return value;
-    } catch (e) {
-        console.error('[Base64] Decoding error:', e);
-        return '[Invalid Message]';
+        const encodedText = encodeURIComponent(text);
+        const escapedText = unescape(encodedText);
+        const base64Value = btoa(escapedText);
+        
+        console.log(`Base64 encoded: "${text}" => "${base64Value}"`);
+        return base64Value;
+    } catch (error) {
+        console.error('[Base64] Encoding error:', error.message);
+        return '';
+    }
+}
+
+function decodeBase64(base64String) {
+    if (typeof base64String !== 'string') {
+        console.error('[Base64] Input must be a string');
+        return '[Invalid Base64 Input]';
+    }
+
+    try {
+        
+        const binaryString = atob(base64String);
+        const escapedString = escape(binaryString);
+        const decodedString = decodeURIComponent(escapedString);
+        
+        console.log(`Base64 decoded: "${base64String}" => "${decodedString}"`);
+        return decodedString;
+    } catch (error) {
+        console.error('[Base64] Decoding error:', error.message);
+        return '[Invalid Base64 Data]';
     }
 }
 
