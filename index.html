@@ -44,13 +44,18 @@
             
 
             <div class="videos" id="videosContainer">
+
+                <div class="video-container remote-video-container" id="remoteVideoContainer">
+                    <video id="remoteVideo" autoplay></video>
+                    <label for="remoteVideo">Contact</label>
+                </div>
                 <div class="video-container">
                     <video id="localVideo" autoplay muted></video>
                     <label for="localVideo">You</label>
                     <div class="call-controls">
                         <button class="control-btn" id="toggleAudioButton">
                             <i class="fas fa-microphone"></i>
-                        
+
                         </button>
                         <button class="control-btn" id="toggleVideoButton">
                             <i class="fas fa-video"></i>
@@ -59,10 +64,6 @@
                             <i class="fas fa-phone-slash"></i>
                         </button>
                     </div>
-                </div>
-                <div class="video-container remote-video-container" id="remoteVideoContainer">
-                    <video id="remoteVideo" autoplay></video>
-                    <label for="remoteVideo">Contact</label>
                 </div>
             </div>
 
