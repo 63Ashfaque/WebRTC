@@ -23,7 +23,6 @@ class PeerApp {
             callInit: document.getElementById('callInit'),
             callOptionsModal: document.getElementById('callOptionsModal'),
             optionChat: document.getElementById('optionChat'),
-            optionAudio: document.getElementById('optionAudio'),
             optionVideo: document.getElementById('optionVideo'),
             chatContainer: document.getElementById('chatContainer'),
             chatMessages: document.getElementById('chatMessages'),
@@ -64,7 +63,7 @@ class PeerApp {
         this.setConnectedUI(false);
 
         // Request initial audio stream
-        this.getUserMedia({ video: false, audio: true })
+        this.getUserMedia({ video: true, audio: true })
             .then(stream => this.setLocalStream(stream))
             .catch(error => console.error('[Media] Error accessing media devices.', error));
 
@@ -134,11 +133,8 @@ class PeerApp {
             this.elements.endCallButton.classList.add('active');
 
 
-            let constraints = { audio: true };
-            if (type === 'video') {
-                constraints.video = true;
-            }
-
+            let constraints = { video:true,audio: true };
+          
             const stream = await this.getUserMedia(constraints);
             this.setLocalStream(stream);
 
@@ -339,6 +335,63 @@ class PeerApp {
         if (!this.state.localStream) return;
 
         try {
+            const icon = this.elements.toggleVideoButton.querySelector("i");
+
+            if (!this.state.videoEnabled) {
+                // Enable video
+                const videoStream = await this.getUserMedia({ video: true });
+                const videoTrack = videoStream.getVideoTracks()[0];
+
+                // Add the video track to the local stream
+                this.state.localStream.addTrack(videoTrack);
+                this.elements.localVideo.srcObject = this.state.localStream;
+
+                // Add the video track to the peer connection
+                if (this.state.peerConnection) {
+                    const sender = this.state.peerConnection.peerConnection
+                        .getSenders()
+                        .find(s => s.track && s.track.kind === 'video');
+                    if (sender) {
+                        sender.replaceTrack(videoTrack);
+                    } else {
+                        this.state.peerConnection.peerConnection.addTrack(videoTrack, this.state.localStream);
+                    }
+                }
+
+                this.state.videoEnabled = true;
+                icon.classList.remove("fa-video-slash");
+                icon.classList.add("fa-video");
+            } else {
+                // Disable video
+                this.state.localStream.getVideoTracks().forEach(track => {
+                    track.stop();
+                    this.state.localStream.removeTrack(track);
+                });
+                this.elements.localVideo.srcObject = this.state.localStream;
+
+                // Remove the video track from the peer connection
+                if (this.state.peerConnection) {
+                    const sender = this.state.peerConnection.peerConnection
+                        .getSenders()
+                        .find(s => s.track && s.track.kind === 'video');
+                    if (sender) {
+                        sender.replaceTrack(null);
+                    }
+                }
+
+                this.state.videoEnabled = false;
+                icon.classList.remove("fa-video");
+                icon.classList.add("fa-video-slash");
+            }
+        } catch (error) {
+            console.error('[Media] Error toggling video:', error);
+        }
+    }
+
+    async toggleVideo1() {
+        if (!this.state.localStream) return;
+
+        try {
              // Toggle icon in the button
     const icon = this.elements.toggleVideoButton.querySelector("i");
             if (!this.state.videoEnabled) {
@@ -443,11 +496,6 @@ class PeerApp {
             this.setupChatConnection(peerId);
         });
 
-        this.elements.optionAudio.addEventListener('click', () => {
-            const peerId = this.elements.callOptionsModal.dataset.peerId;
-            this.elements.callOptionsModal.classList.remove('active');
-            this.startCall(peerId, 'audio');
-        });
 
         this.elements.optionVideo.addEventListener('click', () => {
             const peerId = this.elements.callOptionsModal.dataset.peerId;
