@@ -1,17 +1,8 @@
-// Utility functions
-function generateRandomPeerId() {
-    return Math.floor(1000 + Math.random() * 9000).toString();
-}
 
-function showToast(message, duration = 2000) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.style.opacity = '1';
-    setTimeout(() => {
-        toast.style.opacity = '0';
-    }, duration);
-}
-
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    new PeerApp();
+});
 // Main application class
 class PeerApp {
     constructor() {
@@ -28,7 +19,7 @@ class PeerApp {
             peerIdInput: document.getElementById('peerIdInput'),
             toggleAudioButton: document.getElementById('toggleAudioButton'),
             toggleVideoButton: document.getElementById('toggleVideoButton'),
-          
+
             callInit: document.getElementById('callInit'),
             callOptionsModal: document.getElementById('callOptionsModal'),
             optionChat: document.getElementById('optionChat'),
@@ -67,16 +58,16 @@ class PeerApp {
         // Initialize PeerJS
         this.peer = new Peer(this.state.myPeerId);
         console.log('[PeerJS] Peer instance created with ID:', this.state.myPeerId);
-        
+
         // Set initial UI state
         this.elements.myPeerIdSpan.textContent = this.state.myPeerId;
         this.setConnectedUI(false);
-        
+
         // Request initial audio stream
         this.getUserMedia({ video: false, audio: true })
             .then(stream => this.setLocalStream(stream))
             .catch(error => console.error('[Media] Error accessing media devices.', error));
-        
+
         // Set up event listeners
         this.setupEventListeners();
     }
@@ -106,7 +97,7 @@ class PeerApp {
         } else {
             this.state.connectedPeers = this.state.connectedPeers.filter(id => id !== peerId);
         }
-        
+
         this.elements.connectedPeersSpan.textContent = this.state.connectedPeers.length
             ? `Connected Peers: ${this.state.connectedPeers.join(', ')}`
             : 'Connected Peers: None';
@@ -116,7 +107,7 @@ class PeerApp {
     setCallUIActive(active) {
         this.elements.startCallButton.disabled = active;
         this.elements.peerIdInput.disabled = active;
-        
+
         if (active) {
             this.elements.startCallButton.classList.add('disabled');
             this.elements.peerIdInput.classList.add('disabled');
@@ -131,7 +122,7 @@ class PeerApp {
     setConnectedUI(connected) {
         this.elements.disconnectBtn.style.display = connected ? '' : 'none';
         this.elements.chatInputContainer.style.display = connected ? '' : 'none';
-       
+
         this.elements.endCallButton.style.display = connected ? '' : 'none';
     }
 
@@ -141,27 +132,27 @@ class PeerApp {
             this.setCallUIActive(true);
             this.elements.videosContainer.classList.add('active');
             this.elements.endCallButton.classList.add('active');
-          
-            
+
+
             let constraints = { audio: true };
             if (type === 'video') {
                 constraints.video = true;
             }
-            
+
             const stream = await this.getUserMedia(constraints);
             this.setLocalStream(stream);
-            
+
             const call = this.peer.call(peerId, stream);
             this.state.peerConnection = call;
             this.updateConnectedPeers(peerId, true);
-            
+
             call.on('stream', remoteStream => {
                 this.elements.remoteVideo.srcObject = remoteStream;
                 this.elements.remoteVideoContainer.classList.add('active');
             });
-            
+
             call.on('close', () => this.endCall());
-            
+
             this.setConnectedUI(true);
             return call;
         } catch (error) {
@@ -173,36 +164,36 @@ class PeerApp {
 
     async answerCall() {
         if (!this.state.pendingCall) return;
-        
+
         try {
             this.elements.incomingCallModal.classList.remove('active');
             this.setCallUIActive(true);
             this.elements.videosContainer.classList.add('active');
             this.elements.endCallButton.classList.add('active');
-            
+
             // Ensure we have the required media
             const currentStream = this.state.localStream;
             if (!currentStream || (this.state.pendingCall.metadata?.type === 'video' && !currentStream.getVideoTracks().length)) {
-                const constraints = { 
-                    audio: true, 
-                    video: this.state.pendingCall.metadata?.type === 'video' 
+                const constraints = {
+                    audio: true,
+                    video: this.state.pendingCall.metadata?.type === 'video'
                 };
                 const stream = await this.getUserMedia(constraints);
                 this.setLocalStream(stream);
             }
-            
+
             this.state.pendingCall.answer(this.state.localStream);
             this.state.peerConnection = this.state.pendingCall;
             this.updateConnectedPeers(this.state.pendingCall.peer, true);
-            
+
             this.state.pendingCall.on('stream', remoteStream => {
                 this.elements.remoteVideo.srcObject = remoteStream;
                 this.elements.remoteVideoContainer.classList.add('active');
-                
+
             });
-            
+
             this.state.pendingCall.on('close', () => this.endCall());
-            
+
             this.setConnectedUI(true);
             this.state.pendingCall = null;
         } catch (error) {
@@ -216,24 +207,26 @@ class PeerApp {
             this.state.peerConnection.close();
             this.state.peerConnection = null;
         }
-        
+
         if (this.state.currentChatConn) {
             this.state.currentChatConn.close();
             this.state.currentChatConn = null;
         }
-        
+
         this.elements.remoteVideo.srcObject = null;
         this.elements.remoteVideoContainer.classList.remove('active');
-    
+
         this.elements.videosContainer.classList.remove('active');
         this.elements.endCallButton.classList.remove('active');
         this.elements.chatContainer.classList.remove('active');
         this.setCallUIActive(false);
         this.setConnectedUI(false);
-        
+
         // Reset peer list but keep UI responsive
         this.state.connectedPeers = [];
         this.elements.connectedPeersSpan.textContent = 'Connected Peers: None';
+
+          refreshPage() ;
     }
 
     // Chat handling
@@ -241,23 +234,28 @@ class PeerApp {
         const conn = this.peer.connect(peerId);
         this.state.currentChatConn = conn;
         this.updateConnectedPeers(peerId, true);
-        
+
         conn.on('open', () => {
             console.log('[Chat] Data connection opened.');
             this.setConnectedUI(true);
         });
-        
-        conn.on('data', data => this.appendChatMessage('Peer', data));
+
+       // conn.on('data', data => this.appendChatMessage('Peer', data));
+        conn.on('data', data => {
+            const decodedMsg = decodeBase64(data);
+            this.appendChatMessage('Peer', decodedMsg);
+        });
         conn.on('close', () => {
             this.appendChatMessage('System', 'Chat ended.');
             this.updateConnectedPeers(peerId, false);
             this.setConnectedUI(false);
+            refreshPage();
         });
     }
     appendChatMessage(sender, message) {
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('message');
-    
+
         if (sender === 'You') {
             msgDiv.classList.add('outgoing');
         } else if (sender === 'Peer') {
@@ -266,84 +264,59 @@ class PeerApp {
             msgDiv.style.textAlign = 'center';
             msgDiv.style.color = '#888';
         }
-    
+
         // Create message content with optional ticks and time
         const messageContent = document.createElement('div');
         messageContent.textContent = message;
-    
+
         // Create metadata (time and ticks)
         const metadata = document.createElement('span');
         metadata.classList.add('metadata');
-    
+
         const now = new Date();
         const hours = now.getHours().toString().padStart(2, '0');
         const minutes = now.getMinutes().toString().padStart(2, '0');
         const timeString = `${hours}:${minutes}`;
         if (sender === 'You') {
-          
+
             metadata.innerHTML = `${timeString} <span class="ticks">✔✔</span>`; // double tick
         }
-        if (sender === 'Peer') 
+        if (sender === 'Peer')
         {
             metadata.innerHTML = `${timeString}`; // double tick
 
         }
-    
+
         msgDiv.appendChild(messageContent);
         if (sender === 'You' || sender === 'Peer') {
             msgDiv.appendChild(metadata);
         }
-    
-        this.elements.chatMessages.appendChild(msgDiv);
-        this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
-    
-        if (sender === 'System' && message === 'Chat ended.') {
-            this.elements.chatContainer.classList.remove('active');
-            this.setCallUIActive(false);
-        }
-    }
-    
 
-    appendChatMessage1(sender, message) {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message');
-        
-        if (sender === 'You') {
-            msgDiv.classList.add('outgoing');
-        } else if (sender === 'Peer') {
-            msgDiv.classList.add('incoming');
-        } else if (sender === 'System') {
-            msgDiv.style.textAlign = 'center';
-            msgDiv.style.color = '#888';
-        }
-        
-        msgDiv.textContent = message;
         this.elements.chatMessages.appendChild(msgDiv);
         this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
-        
+
         if (sender === 'System' && message === 'Chat ended.') {
             this.elements.chatContainer.classList.remove('active');
             this.setCallUIActive(false);
         }
     }
+
 
     sendChatMessage() {
         const msg = this.elements.chatInput.value.trim();
         if (!msg || !this.state.currentChatConn) return;
-        
-        try {
-            this.state.currentChatConn.send(msg);
-            this.appendChatMessage('You', msg);
-            this.elements.chatInput.value = '';
-        } catch (error) {
-            console.error('[Chat] Error sending message:', error);
-        }
+
+        const encodedMsg = encodeBase64(msg);
+        this.state.currentChatConn.send(encodedMsg);
+        this.appendChatMessage('You', msg);
+        this.elements.chatInput.value = '';
     }
+
 
     // Media controls
     toggleAudio() {
         if (!this.state.localStream) return;
-        
+
         this.state.audioEnabled = !this.state.audioEnabled;
         this.state.localStream.getAudioTracks().forEach(track => {
             track.enabled = this.state.audioEnabled;
@@ -357,14 +330,14 @@ class PeerApp {
         icon.classList.remove("fa-microphone");
         icon.classList.add("fa-microphone-slash");
     }
-        
+
        // this.elements.toggleAudioButton.textContent = this.state.audioEnabled ? '🔊 Audio On' : '🔇 Audio Off';
         console.log('[UI] Audio', this.state.audioEnabled ? 'enabled' : 'muted');
     }
 
     async toggleVideo() {
         if (!this.state.localStream) return;
-        
+
         try {
             if (!this.state.videoEnabled) {
                 const videoStream = await this.getUserMedia({ video: true });
@@ -374,7 +347,7 @@ class PeerApp {
                 this.state.videoEnabled = true;
                 icon.classList.remove("fa-video-slash");
                 icon.classList.add("fa-video");
-        
+
             } else {
                 this.state.localStream.getVideoTracks().forEach(track => {
                     track.stop();
@@ -382,7 +355,7 @@ class PeerApp {
                 });
                 this.elements.localVideo.srcObject = this.state.localStream;
                 this.state.videoEnabled = false;
-               
+
                 icon.classList.remove("fa-video");
                 icon.classList.add("fa-video-slash");
             }
@@ -397,21 +370,21 @@ class PeerApp {
         this.peer.on('call', call => {
             console.log('[PeerJS] Incoming call received.');
             this.state.pendingCall = call;
-            
+
             let type = 'Audio/Video Call';
             if (call.metadata?.type) {
                 type = `${call.metadata.type.charAt(0).toUpperCase()}${call.metadata.type.slice(1)} Call`;
             }
-            
+
             this.elements.incomingCallType.textContent = type;
             this.elements.incomingCallModal.classList.add('active');
-            
+
             call.on('close', () => {
                 this.updateConnectedPeers(call.peer, false);
                 this.setConnectedUI(false);
             });
         });
-        
+
         this.peer.on('connection', conn => {
             this.state.currentChatConn = conn;
             this.elements.chatContainer.classList.add('active');
@@ -419,15 +392,20 @@ class PeerApp {
             this.elements.endCallButton.classList.add('active');
             this.updateConnectedPeers(conn.peer, true);
             this.setConnectedUI(true);
-            
-            conn.on('data', data => this.appendChatMessage('Peer', data));
+
+           // conn.on('data', data => this.appendChatMessage('Peer', data));
+            conn.on('data', data => {
+                const decodedMsg = decodeBase64(data);
+                this.appendChatMessage('Peer', decodedMsg);
+            });
+
             conn.on('close', () => {
                 this.appendChatMessage('System', 'Chat ended.');
                 this.updateConnectedPeers(conn.peer, false);
                 this.setConnectedUI(false);
             });
         });
-        
+
         // Button events
         this.elements.startCallButton.addEventListener('click', () => {
             const peerId = this.elements.peerIdInput.value.trim();
@@ -438,10 +416,10 @@ class PeerApp {
             this.elements.callOptionsModal.dataset.peerId = peerId;
             this.elements.callOptionsModal.classList.add('active');
         });
-        
+
         this.elements.endCallButton.addEventListener('click', () => this.endCall());
         this.elements.disconnectBtn.addEventListener('click', () => this.endCall());
-        
+
         this.elements.acceptCallBtn.addEventListener('click', () => this.answerCall());
         this.elements.rejectCallBtn.addEventListener('click', () => {
             if (this.state.pendingCall) {
@@ -450,7 +428,7 @@ class PeerApp {
             }
             this.elements.incomingCallModal.classList.remove('active');
         });
-        
+
         // Call options
         this.elements.optionChat.addEventListener('click', () => {
             const peerId = this.elements.callOptionsModal.dataset.peerId;
@@ -459,32 +437,32 @@ class PeerApp {
             this.elements.chatContainer.classList.add('active');
             this.elements.endCallButton.classList.add('active');
             this.elements.videosContainer.classList.remove('active');
-    
+
             this.setupChatConnection(peerId);
         });
-        
+
         this.elements.optionAudio.addEventListener('click', () => {
             const peerId = this.elements.callOptionsModal.dataset.peerId;
             this.elements.callOptionsModal.classList.remove('active');
             this.startCall(peerId, 'audio');
         });
-        
+
         this.elements.optionVideo.addEventListener('click', () => {
             const peerId = this.elements.callOptionsModal.dataset.peerId;
             this.elements.callOptionsModal.classList.remove('active');
             this.startCall(peerId, 'video');
         });
-        
+
         // Chat events
         this.elements.sendChatButton.addEventListener('click', () => this.sendChatMessage());
         this.elements.chatInput.addEventListener('keydown', e => {
             if (e.key === 'Enter') this.sendChatMessage();
         });
-        
+
         // Media controls
         this.elements.toggleAudioButton.addEventListener('click', () => this.toggleAudio());
         this.elements.toggleVideoButton.addEventListener('click', () => this.toggleVideo());
-        
+
         // Peer ID management
         this.elements.copyPeerIdBtn.addEventListener('click', () => {
             navigator.clipboard.writeText(this.state.myPeerId)
@@ -496,25 +474,53 @@ class PeerApp {
                 })
                 .catch(err => console.error('[UI] Error copying Peer ID:', err));
         });
-        
+
         this.elements.newPeerId.addEventListener('click', () => {
-            this.state.myPeerId = generateRandomPeerId();
-            this.elements.myPeerIdSpan.textContent = this.state.myPeerId;
-            console.log('[UI] New Peer ID generated:', this.state.myPeerId);
-            
-            // Reinitialize Peer with new ID
-            this.peer.destroy();
-            this.peer = new Peer(this.state.myPeerId);
-            this.setupEventListeners();
+         refreshPage() ;
         });
     }
 }
 
-// Initialize the application
-document.addEventListener('DOMContentLoaded', () => {
-    new PeerApp();
-});
+function refreshPage() {
+    location.reload();
+  }
 
+  // Utility functions
+  function generateRandomPeerId() {
+      return Math.floor(1000 + Math.random() * 9000).toString();
+  }
+
+  function showToast(message, duration = 2000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.opacity = '1';
+      setTimeout(() => {
+          toast.style.opacity = '0';
+      }, duration);
+  }
+
+let value = "";
+  function encodeBase64(text) {
+      try {
+      value=btoa(unescape(encodeURIComponent(text)));
+     console.log(`${text} => ${value}`);
+          return value;
+      } catch (e) {
+          console.error('[Base64] Encoding error:', e);
+          return '';
+      }
+  }
+
+function decodeBase64(text) {
+    try {
+    value=decodeURIComponent(escape(atob(text)));
+           console.log(`${text} => ${value}`);
+              return value;
+    } catch (e) {
+        console.error('[Base64] Decoding error:', e);
+        return '[Invalid Message]';
+    }
+}
 
 
 

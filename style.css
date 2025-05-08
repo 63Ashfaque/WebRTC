@@ -157,15 +157,7 @@ body {
     margin: 20px 0;
 }
 
-.audio-card {
-    background-color: #222;
-    padding: 20px;
-    border-radius: 15px;
-    text-align: center;
-    color: white;
-    width: 150px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.3);
-}
+
 
 .videos {
     display: none;
@@ -200,11 +192,6 @@ video {
     border: 2px solid white;
 }
 
-#audioContainer {
-    background-color: var(--wa-chat-bg);
-    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-    background-size: cover;
-}
 
 canvas {
     background-color: #111;
@@ -225,7 +212,9 @@ canvas {
     display: flex;
     flex-direction: column;
     background-color: var(--wa-chat-bg);
+    /*
     background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+    */
     background-size: cover;
     opacity: 0.9;
     height: 100vh;
@@ -399,7 +388,6 @@ canvas {
     flex-direction: column;
     gap: 10px;
     background-color: white;
-    border-top: 1px solid #E5E5E5;
     position: fixed;
     bottom: 0;
     left: 0;
@@ -433,26 +421,7 @@ canvas {
     background-color: var(--wa-teal);
 }
 
-.media-toggles {
-    display: none;
-    justify-content: center;
-    gap: 20px;
-}
 
-.media-toggles.active {
-    display: flex;
-}
-
-.media-toggle-btn {
-    background: none;
-    border: none;
-    font-size: 15px;
-    cursor: pointer;
-    color: var(--wa-gray-text);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
 
 .modal-overlay {
     position: fixed;
