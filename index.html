@@ -14,18 +14,14 @@
     <div class="app-container">
         <div class="header">
             <div class="header-title">
-            
-                <div class="profile-img">
-                    <img src="https://picsum.photos/200" alt="Profile Image" />
-                </div>
+
+                <i class="fa-solid fa-face-smile"></i>
             
                   <div class="info-bar1">
                 <div class="peer-id-section">
                     <h3>Chat ID :
                         <span id="myPeerId" class="peer-id">...</span>
-                        <button id="copyPeerId"><i class="fas fa-copy"></i></button>
-                        <button id="newPeerId"><i class="fas fa-arrows-rotate"></i></button>
-
+                        <button id="copyPeerId" class="icon-btn"><i class="fas fa-copy"></i></button>
                     </h3>
                    
                 </div>
@@ -33,8 +29,8 @@
             </div>
             </div>
             <div class="header-actions">
-               
-            
+
+                <button id="newPeerId" class="icon-btn"><i class="fas fa-arrows-rotate"></i></button>
                 <button class="header-btn-reject" id="disconnectBtn" title="Disconnect">
                     <i class="fas fa-phone-slash"></i>
                 </button>
@@ -82,7 +78,7 @@
 
             <div class="start-call-section">
                 <div class="call-init" id="callInit">
-                    <input id="peerIdInput" type="text" placeholder="Enter peer ID to connect" />
+                    <input id="peerIdInput" class ="input-box" type="text" placeholder="Enter peer ID to connect" />
                     <button class="call-btn" id="startCallButton">
                         <i class="fas fa-plug"></i> Connect
                     </button>
@@ -96,7 +92,7 @@
                         <i class="fas fa-paperclip"></i>
                     </button>
                     <div class="chat-input-wrapper">
-                        <input id="chatInput" type="text" placeholder="Type a message" />
+                        <input id="chatInput" class ="input-box" type="text" placeholder="Type a message" />
                     </div>
                     <button class="input-btn" id="sendChatButton">
                         <i class="fas fa-paper-plane"></i>
@@ -145,7 +141,7 @@
     </div>
 
     <!-- Toast notification -->
-    <div id="toast" style="position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 24px; border-radius: 24px; font-size: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000;">Connected!</div>
+    <div id="toast" class="toast" aria-live="polite">Connected!</div>
 
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script>
